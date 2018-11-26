@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <title>分类管理</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="/vue/element/index.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="/vue/vue.js"></script>
+    <script src="/vue/element/index.js"></script>
+    <script src="/vue/vue-resource1.5.1.js"></script>
+</head>
+<body>
+<div class="main">
+    <el-alert
+            title="修改后点击立即保存才会生效"
+            type="warning"
+            close-text="知道了"
+            show-icon>
+    </el-alert>
+    <div class="main-head">
+        <h3>分类管理</h3>
+        <div>
+            <el-button type="primary" @click="save" size="small" v-cloak>立即保存</el-button>
+        </div>
+        <div>
+            <el-button type="primary" size="mini" @click="addFirstLevel">添加一级分类</el-button>
+        </div>
+    </div>
+    <el-tree
+            :data="data"
+            :expand-on-click-node="false"
+            node-key="id"
+            :indent="20"
+            default-expand-all
+            draggable>
+      <span class="custom-tree-node" slot-scope="{ node, data }">
+        <span><el-input v-model="data.name" autocomplete="off" size="mini"></el-input></span>
+        <span>
+            <el-button
+                    type="text"
+                    size="mini"
+                    @click="() => showEdit(node, data)">
+            编辑
+          </el-button>
+          <el-button
+                  type="text"
+                  size="mini"
+                  @click="() => append(data)">
+            增加
+          </el-button>
+          <el-button
+                  type="text"
+                  size="mini"
+                  @click="() => remove(node, data)">
+            删除
+          </el-button>
+        </span>
+      </span>
+    </el-tree>
+    <!-- Form -->
+    <el-dialog title="分类编辑" :visible.sync="dialogFormVisible">
+        <el-form :model="category">
+            <el-form-item label="名称" label-width="80px">
+                <el-input v-model="category.name" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="关键词" label-width="80px">
+                <el-input v-model="category.keywords" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="描述" label-width="80px">
+                <el-input v-model="category.description" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="dialogFormVisible = false">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+<script th:inline="javascript">
+    let id = [[${id}]];
+    new Vue({
+        el: '.main',
+        data: {
+            data: null,
+            dialogFormVisible: false,
+            category: {},
+            saveLoading: true
+        },
+        methods: {
+            /**
+             * 添加
+             */
+            append(data) {
+                const newChild = {id: id++, keywords: '', description: '', children: []};
+                if (!data.children) {
+                    this.$set(data, 'children', []);
+                }
+                data.children.push(newChild);
+            },
+            /**
+             * 删除
+             */
+            remove(node, data) {
+                const parent = node.parent;
+                const children = parent.data.children || parent.data;
+                const index = children.findIndex(d => d.id === data.id);
+                children.splice(index, 1);
+            },
+            /**
+             * 编辑
+             */
+            showEdit(node, data) {
+                this.dialogFormVisible = true;
+                this.category = data;
+            },
+            /**
+             * 添加一级分类
+             */
+            addFirstLevel() {
+                const newChild = {id: id++, keywords: '', description: '', children: []};
+                this.data.push(newChild)
+            },
+            /**
+             * 保存
+             */
+            save() {
+                let data = this.data;
+                const loading = this.$loading({
+                    lock: true,
+                    text: '保存中',
+                    spinner: 'el-icon-loading',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                });
+                this.$http.post('/category', {data}).then(response => {
+                    loading.close();
+                }, response => {
+                    loading.close();
+                });
+            }
+        },
+        mounted() {
+            let that = this;
+            this.$http.get('/categories').then(response => {
+                that.data = JSON.parse(response.bodyText);
+            }, response => {
+                // error callback
+            });
+        }
+    });
+</script>
+</body>
+</html>
